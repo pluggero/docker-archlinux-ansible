@@ -24,9 +24,13 @@ RUN sed -i 's/#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen \
     && locale-gen \
     && echo "LANG=en_US.UTF-8" > /etc/locale.conf
 
+# Create ansible user with home directory
+RUN useradd -m -s /bin/bash ansible \
+    && echo "ansible:ansible" | chpasswd
+
 # Create a default Ansible inventory file.
-RUN mkdir -p /etc/ansible \
-    && echo "[local]\nlocalhost ansible_connection=local" > /etc/ansible/hosts
+RUN mkdir -p /etc/ansible
+RUN echo "[local]\nlocalhost ansible_user=ansible ansible_connection=local" > /etc/ansible/hosts
 
 # Remove unnecessary getty and udev targets that result in high CPU usage when using
 # multiple containers with Molecule (https://github.com/ansible/molecule/issues/1104)
