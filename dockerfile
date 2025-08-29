@@ -28,6 +28,9 @@ RUN sed -i 's/#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen \
 RUN useradd -m -s /bin/bash ansible \
     && echo "ansible:ansible" | chpasswd
 
+# Configure sudo access for ansible user with password requirement
+RUN echo "ansible ALL=(ALL:ALL) ALL" > /etc/sudoers.d/ansible
+
 # Create a default Ansible inventory file.
 RUN mkdir -p /etc/ansible
 RUN echo "[local]\nlocalhost ansible_user=ansible ansible_connection=local" > /etc/ansible/hosts
