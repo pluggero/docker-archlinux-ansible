@@ -10,7 +10,7 @@ on:
 env:
   PACKER_OUTPUT: packer/outputs/archlinux-ansible.tar
   REGISTRY: pluggero
-  IMAGE_NAME: archlinux-ansible
+  IMAGE_NAME: docker-archlinux-ansible
 
 jobs:
   lint:
@@ -28,6 +28,10 @@ jobs:
     name: Release to Docker Hub
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      id-token: write
+      attestations: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -50,6 +54,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Load and push Docker image
+        id: push
         run: |
           set -euo pipefail
 
@@ -59,8 +64,8 @@ jobs:
           echo "Loading Docker image from artifact..."
           docker load -i ./image/archlinux-ansible.tar
 
-          echo "Tagging image with version ${VERSION}..."
-          docker tag "${FULL_IMAGE_NAME}:latest" "${FULL_IMAGE_NAME}:${VERSION}"
+          echo "Tagging image with version ${VERSION} as latest..."
+          docker tag "${FULL_IMAGE_NAME}:${VERSION}" "${FULL_IMAGE_NAME}:latest"
 
           echo "Pushing ${FULL_IMAGE_NAME}:${VERSION}..."
           docker push "${FULL_IMAGE_NAME}:${VERSION}"
@@ -68,4 +73,15 @@ jobs:
           echo "Pushing ${FULL_IMAGE_NAME}:latest..."
           docker push "${FULL_IMAGE_NAME}:latest"
 
+          # Get the digest for attestation
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "${FULL_IMAGE_NAME}:${VERSION}" | cut -d'@' -f2)
+          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+
           echo "Release completed successfully!"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-name: docker.io/${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
