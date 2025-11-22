@@ -1,0 +1,14 @@
+---
+- name: Archlinux provisioning
+  hosts: all
+  gather_facts: true
+
+  vars_files:
+    - ../vars/upgrade.yml
+    - ../vars/common_pkgs.yml
+    - ../vars/user_setup.yml
+
+  roles:
+    - pluggero.upgrade
+    - pluggero.common_pkgs
+    - pluggero.user_setup

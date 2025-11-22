@@ -4,27 +4,106 @@
 
 Archlinux Docker container for Ansible playbook and role testing.
 
+## ⚠️ Security Warning
+
+**This box is intended for testing and development purposes only. DO NOT use in production environments.**
+
+This Docker Image contains:
+
+- Public passwords visible in the repository
+- Pre-configured users with known credentials
+
+These are intentionally included for transparent testing but make this box completely insecure for production use.
+
 ## Tags
 
 - `latest`: Latest stable version of Ansible, with Python 3.x.
 
+## Requirements
+
+- [Packer](https://www.packer.io/)
+- [Ansible](https://www.ansible.com/)
+- [Docker](https://www.docker.com/)
+
 ## How to Build
 
-This image is built on Docker Hub automatically any time the upstream OS container is rebuilt, and any time a commit is made or merged to the `main` branch. But if you need to build the image on your own locally, do the following:
+1. Install the required tools (Packer, Ansible, Docker).
+2. Clone this repository and `cd` into it.
+3. Run the build script:
 
-1. [Install Docker](https://docs.docker.com/engine/installation/).
-2. `cd` into this directory.
-3. Run `docker build -t docker-archlinux-ansible .`
+```bash
+./scripts/archlinux_builder.sh
+```
+
+The build process:
+
+1. Runs a bootstrap script to install Python
+2. Provisions the container with Ansible
+3. Commits the image with the configured tag
+
+## Project Structure
+
+```
+.
+├── ansible/
+│   ├── ansible.cfg         # Ansible configuration
+│   ├── playbooks/main.yml  # Main provisioning playbook
+│   ├── requirements.yml    # Galaxy roles and collections
+│   ├── roles/              # Downloaded Galaxy roles
+│   └── collections/        # Downloaded Galaxy collections
+├── packer/
+│   └── archlinux.pkr.hcl   # Packer configuration
+├── scripts/
+│   ├── archlinux_builder.sh # Build automation script
+│   └── bootstrap.sh        # Python bootstrap for Ansible
+```
+
+## Adding Ansible Galaxy Roles
+
+Edit `ansible/requirements.yml` to add roles or collections:
+
+```yaml
+collections:
+  - name: community.general
+    version: ">=8.0.0"
+
+roles:
+  - name: geerlingguy.docker
+    version: "6.1.0"
+```
+
+Roles are automatically installed during the build process.
 
 ## How to Use
 
-1. [Install Docker](https://docs.docker.com/engine/installation/).
-2. Pull this image from Docker Hub: `docker pull pluggero/docker-archlinux-ansible:latest` (or use the image you built earlier, e.g. `docker-archlinux-ansible:latest`).
-3. Run a container from the image: `docker run --name test-container -d --privileged -v /sys/fs/cgroup:/sys/fs/cgroup:rw --cgroupns=host pluggero/docker-archlinux-ansible:latest` (to test my Ansible roles, I add in a volume mounted from the current working directory with ``--volume=`pwd`:/etc/ansible/roles/role_under_test:ro``).
-   - **NOTE**: It should be avoided to mount your workstations cgroup volume with read-write permissions as it can break your session. Only use this inside of a virtual machine.
-4. Use Ansible inside the container:
-   a. `docker exec --tty test-container env TERM=xterm ansible --version`
-   b. `docker exec --tty test-container env TERM=xterm ansible-playbook /path/to/ansible/playbook.yml --syntax-check`
+1. Pull this image from Docker Hub: `docker pull pluggero/docker-archlinux-ansible:latest`
+2. Run a container from the image:
+
+```bash
+docker run --name test-container -d --privileged \
+  -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+  --cgroupns=host \
+  pluggero/docker-archlinux-ansible:latest
+```
+
+3. Use Ansible inside the container:
+
+```bash
+docker exec --tty test-container env TERM=xterm ansible --version
+docker exec --tty test-container env TERM=xterm ansible-playbook /path/to/playbook.yml --syntax-check
+```
+
+To test Ansible roles, mount your role:
+
+```bash
+docker run --name test-container -d --privileged \
+  -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+  --cgroupns=host \
+  --volume="$(pwd):/etc/ansible/roles/role_under_test:ro" \
+  pluggero/docker-archlinux-ansible:latest
+```
+
+> **Note**: Avoid mounting your workstation's cgroup volume with read-write permissions as it can break your session. Only use this inside of a virtual machine.
 
 ## Notes
 
