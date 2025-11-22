@@ -79,6 +79,10 @@ jobs:
           echo "Pushing ${FULL_IMAGE_NAME}:latest..."
           docker push "${FULL_IMAGE_NAME}:latest"
 
+          # Get the digest from the pushed image
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "${FULL_IMAGE_NAME}:${VERSION}" | cut -d'@' -f2)
+          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
+
           echo "Release completed successfully!"
 
       - name: Generate checksums file
@@ -87,14 +91,13 @@ jobs:
           set -euo pipefail
 
           VERSION="${{ steps.set_version.outputs.version }}"
-
-          echo "Calculating image checksum..."
-          checksum=$(sha256sum ./image/archlinux-ansible.tar | awk '{print $1}')
-          echo "Checksum: $checksum"
+          FULL_IMAGE_NAME="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          DIGEST="${{ steps.push.outputs.digest }}"
 
           echo "Creating checksums file with metadata..."
           {
-            echo "$checksum  archlinux-ansible.tar"
+            echo "Image: ${FULL_IMAGE_NAME}:${VERSION}"
+            echo "Digest: ${DIGEST}"
             echo ""
             echo "Build Metadata"
             echo "- Version: $VERSION"
