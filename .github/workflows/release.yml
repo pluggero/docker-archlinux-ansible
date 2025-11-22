@@ -53,6 +53,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Get commit SHA and workflow URL
+        id: build_metadata
+        run: |
+          echo "commit_sha=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+          echo "workflow_url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >> $GITHUB_OUTPUT
+
       - name: Load and push Docker image
         id: push
         run: |
@@ -73,15 +79,40 @@ jobs:
           echo "Pushing ${FULL_IMAGE_NAME}:latest..."
           docker push "${FULL_IMAGE_NAME}:latest"
 
-          # Get the digest for attestation
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "${FULL_IMAGE_NAME}:${VERSION}" | cut -d'@' -f2)
-          echo "digest=${DIGEST}" >> $GITHUB_OUTPUT
-
           echo "Release completed successfully!"
+
+      - name: Generate checksums file
+        id: checksums
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.set_version.outputs.version }}"
+
+          echo "Calculating image checksum..."
+          checksum=$(sha256sum ./image/archlinux-ansible.tar | awk '{print $1}')
+          echo "Checksum: $checksum"
+
+          echo "Creating checksums file with metadata..."
+          {
+            echo "$checksum  archlinux-ansible.tar"
+            echo ""
+            echo "Build Metadata"
+            echo "- Version: $VERSION"
+            echo "- Git commit: ${{ steps.build_metadata.outputs.commit_sha }}"
+            echo "- Workflow run: ${{ steps.build_metadata.outputs.workflow_url }}"
+            echo "- Build date: $(date --utc +"%Y-%m-%d %H:%M:%S UTC")"
+            echo ""
+            echo "Repository: ${{ github.server_url }}/${{ github.repository }}"
+          } > ./image/checksums.txt
+          echo "Checksums file created."
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
-          subject-name: docker.io/${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.push.outputs.digest }}
-          push-to-registry: true
+          subject-path: ./image/checksums.txt
+
+      - name: Upload checksums as artifact
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: checksums-${{ steps.set_version.outputs.version }}
+          path: ./image/checksums.txt
