@@ -10,8 +10,12 @@ variable "image_name" {
 
 variable "image_tag" {
   type        = string
-  default     = ""
-  description = "Tag for the Docker image"
+  default     = null
+  description = "Tag for the Docker image (defaults to current date YYYY.MM.DD)"
+}
+
+locals {
+  image_tag = var.image_tag != null ? var.image_tag : formatdate("YYYY.MM.DD", timestamp())
 }
 
 variable "docker_registry" {
