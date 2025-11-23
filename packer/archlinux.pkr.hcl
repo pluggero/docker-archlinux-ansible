@@ -38,8 +38,14 @@ build {
     ]
   }
 
-  post-processor "docker-tag" {
-    repository = "${var.docker_registry}/${var.image_name}"
-    tags       = [var.image_tag]
+  post-processors {
+    post-processor "docker-tag" {
+      repository = "${var.docker_registry}/${var.image_name}"
+      tags       = [local.image_tag]
+    }
+
+    post-processor "docker-save" {
+      path = "${path.root}/outputs/archlinux-ansible.tar"
+    }
   }
 }
