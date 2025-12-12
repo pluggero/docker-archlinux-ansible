@@ -1,30 +1,37 @@
 ---
-name: Create Weekly Tag
+name: Create Tag
 
 on:
-  schedule:
-    # Run every Sunday at 1 AM UTC
-    - cron: "0 1 * * 0"
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version tag to create (e.g., 2025.12.06)"
+        required: true
+        type: string
+    secrets:
+      GH_APP_ID:
+        required: true
+      GH_APP_PRIVATE_KEY:
+        required: true
 
 permissions:
   contents: write
 
 jobs:
   create-tag:
-    name: Create Weekly Version Tag
+    name: Create and Push Tag
     runs-on: ubuntu-latest
 
     steps:
       - name: Generate GitHub App token
         id: generate_token
-        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2
         with:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
 
       - name: Checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         with:
           fetch-depth: 0
           token: ${{ steps.generate_token.outputs.token }}
@@ -33,8 +40,8 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |
-          # Generate tag in YYYY.MM.DD format
-          TAG_NAME=$(date -u +"%Y.%m.%d")
+          # Use version from input
+          TAG_NAME="${{ inputs.version }}"
 
           # Check if tag already exists
           if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
