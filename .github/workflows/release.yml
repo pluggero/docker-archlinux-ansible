@@ -2,9 +2,9 @@
 name: Build and Release
 
 on:
-  push:
-    tags:
-      - "*"
+  schedule:
+    # Run every Sunday at 1 AM UTC
+    - cron: "0 1 * * 0"
   workflow_dispatch:
 
 env:
@@ -32,6 +32,8 @@ jobs:
       id-token: write
       attestations: write
       contents: read
+    outputs:
+      version: ${{ steps.set_version.outputs.version }}
 
     steps:
       - name: Checkout code
@@ -45,7 +47,10 @@ jobs:
 
       - name: Set Release Version
         id: set_version
-        run: echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+        run: |
+          # Use YYYY.MM.DD format for version
+          VERSION=$(date -u +"%Y.%m.%d")
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Login to Docker Hub
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
@@ -119,3 +124,15 @@ jobs:
         with:
           name: checksums-${{ steps.set_version.outputs.version }}
           path: ./image/checksums.txt
+
+  tag:
+    name: Create and Push Tag
+    uses: ./.github/workflows/_tag.yml
+    needs: release
+    permissions:
+      contents: write
+    secrets:
+      GH_APP_ID: ${{ secrets.GH_APP_ID }}
+      GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+    with:
+      version: ${{ needs.release.outputs.version }}
