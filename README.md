@@ -19,28 +19,6 @@ These are intentionally included for transparent testing but make this box compl
 
 - `latest`: Latest stable version of Ansible, with Python 3.x.
 
-## Requirements
-
-- [Packer](https://www.packer.io/)
-- [Ansible](https://www.ansible.com/)
-- [Docker](https://www.docker.com/)
-
-## How to Build
-
-1. Install the required tools (Packer, Ansible, Docker).
-2. Clone this repository and `cd` into it.
-3. Run the build script:
-
-```bash
-./scripts/archlinux_builder.sh
-```
-
-The build process:
-
-1. Runs a bootstrap script to install Python
-2. Provisions the container with Ansible
-3. Commits the image with the configured tag
-
 ## How to Use
 
 1. Pull this image from Docker Hub: `docker pull pluggero/docker-archlinux-ansible:latest`
@@ -71,6 +49,28 @@ docker run --name test-container -d --privileged \
 ```
 
 > **Note**: Avoid mounting your workstation's cgroup volume with read-write permissions as it can break your session. Only use this inside of a virtual machine.
+
+## How to build yourself
+
+1. Install the required tools (Packer, Ansible, Docker).
+2. Clone this repository and `cd` into it.
+3. Run the build script:
+
+```bash
+./scripts/archlinux_builder.sh
+```
+
+The build process:
+
+1. Runs a bootstrap script to install Python
+2. Provisions the container with Ansible
+3. Commits the image with the configured tag
+
+## Build Requirements
+
+- [Packer](https://www.packer.io/)
+- [Ansible](https://www.ansible.com/)
+- [Docker](https://www.docker.com/)
 
 ## Notes
 
