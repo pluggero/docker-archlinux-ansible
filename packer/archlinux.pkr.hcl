@@ -24,6 +24,7 @@ build {
   }
 
   provisioner "ansible" {
+    user                 = "${var.ansible_user}"
     galaxy_file          = "${path.root}/../ansible/requirements.yml"
     galaxy_force_install = true
     roles_path           = "${path.root}/../ansible/roles"

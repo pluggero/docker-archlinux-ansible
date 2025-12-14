@@ -2,6 +2,12 @@
 # VARIABLE DECLARATIONS
 ##################################################################################
 
+variable "ansible_user" {
+  type        = string
+  default     = ""
+  description = "User for ansible provisioning"
+}
+
 variable "image_name" {
   type        = string
   default     = ""
